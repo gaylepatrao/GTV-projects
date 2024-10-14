@@ -1,0 +1,920 @@
+---
+title: "CS5801 Coursework"
+author: "2130988; Gayle Charlene Patrao"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+version: 1
+---
+
+# 0. Instructions 
+
+```{r}
+# Add code here to load any required libraries with `library()`.  
+# We suggest you use `install.package()` for any required packages externally to this document 
+# since installation only need be done once.
+library(Hmisc)
+library(dplyr, warn.conflicts = FALSE)
+library(corrplot)
+```
+
+
+# 1. Organise and clean the data
+
+## 1.1 Subset the data into the specific dataset allocated
+
+```{r}
+# Assign your student id into the variable SID, for example:
+SID <- 2130988                  # 
+SIDoffset <- (SID %% 25) + 1    # SID mod 25 + 1
+
+load("CS5801_football_analysis.Rda")
+# Now subset the football data set
+# Pick every 25th observation starting from your offset
+# Put into your data frame named football
+football <- football.analysis[seq(from=SIDoffset,to=nrow(football.analysis),by=25),]
+```
+
+
+## 1.2 Data quality analysis
+
+### 1.2.1 Planning and Identifying Data Quality issues
+ 
+The first step in data quality checking is to eyeball the data and explore the data frame for any glaring inconsistencies or errors.This is done below.
+
+```{r}
+head(football, n=20) #for eyeballing the first 20 rows of data
+tail(football, n=20) #for eyeballing the last 20 rows of data
+summary(football) #for checking the basic statistics of the data
+```
+Eyeballing the data does not reveal anything majorly wrong with the dataset. The output of the summary() function gives an idea of what needs to be checked for each column in order to ensure data quality. This is outlined and executed below.
+
+Data quality will be checked for the following:
+ * sofifa_id should not be blank or NA since ID must be present in order to identify players correctly
+ * potential should not be blank or NA as this is an important variable for analysis. It should also be within the range 0-100.
+ * wage_eur should not be negative as wage must be a positive value
+ * age should not be negative as age must be a positive value
+ * height_cm should not be negative as height must be a positive value
+ * weight_kg should not be negative as weight must be a positive value
+ * club_name should be factor variable with multiple levels
+ * preferred_foot should be factor variable of two levels: Left and Right
+ * pace should not be negative, and be be within the range 0-100.
+ * shooting should not be negative, and be within the range 0-100.
+ * passing should not be negative, and be within the range 0-100.
+ * dribbling should not be negative, and be within the range 0-100.
+ * defending should not be negative, and be within the range 0-100.
+ * power_strength should not be negative, and be within the range 0-100.
+ * power_long_shots should not be negative, and be within the range 0-100.
+ * high.wage.ind should be a factor variable with two levels: 0 and 1. 1 is if the wage_eur is above 8000 Euros.
+
+### 1.2.2. Implementing and reporting of Data Quality Checking
+The Data Quality Plan is executed below and findings are reported.    
+```{r}
+colSums(is.na(football)) #to check if any of the columns have NA i.e. missing data
+```
+There are no missing or NA values in the data that need to be deleted or corrected.
+
+
+```{r}
+range(football$potential) #checking what is the range of the potential variable
+```
+There are no negative values in the Potential variable, and it is within the range of 0-100 as indicated by the range() function which gives a minimum value of 50 and maximum value of 88.
+
+```{r}
+min(football$wage_eur) #checking what is the range of wages recorded
+max(football$wage_eur) #checking what is the range of wages recorded
+```
+The minimum wage is 4.0001 which is highly improbable and needs to be checked and addressed during data clean-up. The maximum wage is 310,000 which seems improbable but might be correct depending on who the player is as the absolute top players get very high wages. Thus, this also needs to be checked and addressed during data clean-up.
+
+```{r}
+range(football$age) #checking what is the range of ages recorded
+```
+The highest recorded age is 78 which may be problematic as there would probably not be a professional player at such a senior age. This will need to be checked and addressed in data clean-up.
+
+
+```{r}
+range(football$height_cm) #checking what is the range of heights recorded
+```
+The tallest football player is recorded as having a height of 227 cms. This seems improbable as it is very tall. This will need to be checked and addressed in data clean-up.
+
+
+```{r}
+range(football$weight_kg) #checking what is the range of weights recorded
+```
+The football player with the lowest weight is 32 kgs which is extremely light for a professional athlete and so seems improbable. This will need to be checked and addressed in data clean-up.
+
+
+```{r}
+football$club_name <- as.factor(football$club_name) #converting club_name to a factor variable
+levels(football$club_name) #checking the different factor levels
+```
+The club_name column has been converted to factor. Eyeballing the output of the levels() function after the conversion does not reveal any levels that are the same and need to be combined.
+
+
+```{r}
+football$preferred_foot <- as.factor(football$preferred_foot) #converting preferred_foot to a factor variable
+table(football$preferred_foot) #checking the different factor levels
+```
+The preferred_foot column has been converted to factor. Using the table() function reveals that there is an extra level "right" which needs to be converted to "Right" in Data Cleanup.
+
+```{r}
+range(football$pace) #checking what is the range of the pace variable
+```
+The pace variable has a negative value which is not possible and needs to be corrected during data clean-up.
+
+
+```{r}
+range(football$shooting) #checking what is the range of the shooting variable
+```
+The shooting variable has no negative values and is within prescribed range of 0-100.
+
+
+```{r}
+range(football$passing) #checking what is the range of the passing variable
+```
+The passing variable has no negative values and is within prescribed range of 0-100.
+
+
+```{r}
+range(football$dribbling) #checking what is the range of the dribbling variable
+```
+The pace variable has a negative value which is not possible and needs to be corrected during data clean-up. 
+
+
+```{r}
+range(football$defending) #checking what is the range of the defending variable
+```
+The defending variable has no negative values and is within prescribed range of 0-100.
+
+
+```{r}
+range(football$power_strength) #checking what is the range of the power_strength variable
+```
+The power_strength variable has no negative values and is within prescribed range of 0-100.
+
+```{r}
+range(football$power_long_shots) #checking what is the range of the power_long_shots variable
+```
+The power_long_shots variable has no negative values and is within prescribed range of 0-100.
+
+
+```{r}
+football$high.wage.ind <- as.factor(football$high.wage.ind) #converting high.wage.ind variable to factor
+table(football$high.wage.ind) #checking the levels after conversion to factor
+```
+The high.wage.ind column has been converted to factor. Using the table() function reveals that there are no extra factor levels which need to be converted.
+
+```{r}
+highWagePlayers <- football %>% filter(wage_eur > 8000) #creating a data subset of players with a wage greater than 8000 Euros
+table(highWagePlayers$high.wage.ind) #checking if any of these players are marked as not having a high wage in the high.wage.ind column
+```
+Checking the range of wages for players that have a high.wage.ind of 1 reveals that they are all paid a wage of greater than 8000 euros as per the business rule stated.
+
+ 
+## 1.3 Data cleaning  
+ The Data Quality issues revealed in Section 1.2 are addressed in this section.
+
+In the preferred_foot variable, there is an extra level "right" which needs to be converted to "Right" which is done below.
+```{r}
+football[football=="right"] <- "Right" #converting the extra level
+football$preferred_foot <- droplevels(football$preferred_foot) #dropping extra level that is now 0
+table(football$preferred_foot) #checking that there are only two levels now
+```
+
+In the Wage variable, there is a player receiving a wage of 4.0001 which is not possible as it is too low. Based on the assumption that that the decimal point is the probable cause of the error, the wage value for that instance is being changed to 40,001.
+```{r}
+football[football=="4.0001"] <- 40001 #converting the extra level
+range(football$wage_eur) #checking the new range
+boxplot(football$wage_eur, main = "Boxplot of Wage in Euros")
+```
+Additionally, in the wage variable, there are a high number of outlier data points at the higher end of the spectrum as shown in the boxplot. Since there is no way to check this with the data collector and there are too many data points to be eliminated without affecting analysis, the analysis will be conducted with these outliers based on the assumption that these data points are of world-class players that are paid extremely well.
+
+Range of players' ages revealed that there is a 78 year old player.  Since the oldest active soccer player is said  to be 54 years old (Oldest.org, 2021; Kalen et al, 2019), the 78-year-old player signals an error in the data which needs to be addressed. As there is no way to check with the data collector, the age can be imputed at random from the existing age range of the dataset so that there is no significant impact on the data.
+```{r}
+football$age <- ifelse(football$age==78, NA, football$age) #converting the improbable age to NA in order to flag it
+football$age <- ifelse(is.na(football$age), impute(football$age, FUN="random"), football$age) #imputing a random age from the data to the NA value
+range(football$age) #checking the new range of players' ages
+```
+
+Range of players' heights revealed that there is a player with a height of 227 cms.  Since the tallest  soccer player is said to have been 208 cms tall (Devano, 2021), this signals an error in the data which needs to be addressed. As there is no way to check with the data collector, this instance will be removed. This is because if the height were to be imputed, it might impact further analysis based on the assumption that height would be closely related to weight variable.
+```{r}
+football$height_cm <- ifelse(football$height_cm==227, NA, football$height_cm) #converting the improbable height to NA in order to flag it
+clean_football <- football[complete.cases(football),] #creating a dataset with only complete values (i.e. removing NA values from consideration)
+range(clean_football$height_cm) #checking the new range of players' heights
+```
+
+Range of players' weights revealed that there is a player with a weight of 32 kgs and one of 96 kgs. Arnett and Franklin (2014) revealed that the Premier League player with the lowest weight was 54 kgs and so 32 kgs seems to be incorrect. As there is no way to check with the data collector, this instance will be removed. This is because if the weight were to be imputed, it might impact further analysis based on the assumption that weight would be closely related to the height variable
+```{r}
+clean_football$weight_kg <- ifelse(clean_football$weight_kg==32, NA, clean_football$weight_kg) #converting the improbable weight to NA in order to flag it
+clean_football <- clean_football[complete.cases(clean_football$weight_kg),] #creating a dataset with only complete values (i.e. removing NA values from consideration)
+range(clean_football$weight_kg) #checking the new range of players' heights
+```
+
+Range of players' pace revealed that there is a negative pace which is not possible. This needs to be converted to the absolute value.
+```{r}
+clean_football[clean_football==-74] <- 74 #converting the negative value to its absolute value
+range(clean_football$pace) #checking the new range of players' pace
+```
+
+Range of players' dribbling revealed that there is a negative value which is not possible. This needs to be converted to the absolute value.
+```{r}
+clean_football[clean_football==-73] <- 73 #converting the negative value to its absolute value
+range(clean_football$dribbling) #checking the new range of players' dribbling
+```
+
+For the rest of the analysis, the dataset called clean_football will be used since it contains the usable data after data clean-up has been executed above.
+
+# 2. Exploratory Data Analysis (EDA)
+
+## 2.1 EDA plan
+
+Exploratory Data Analysis of the data must be conducted to get a sense of the data and interactions between the variables. Additionally, this will need to be conducted with the research questions in mind thus there will need to be a special focus players' potential and players' wages.
+
+Thus, in the first subsection, EDA of the Potential variable will be conducted in the following ways:
+1. Checking the distribution of the Potential variable through visual means by using a Density Plot
+2. Exploring the relationship between Potential and factor variables through statistical hypothesis testing with a T-Test and boxplots.
+3. Exploring the relationship between Potential and numerical variables through Correlation testing and scatterplots.
+
+In the second subsection, EDA of the Wage and High Wage Indicator variables will be conducted as per below:
+1. Checking the distribution of the wage_eur variable through visual means by using a Histogram
+2. Exploring the relationship between Wage and factor variables through Chi-Square test and barplots.
+3. Exploring the relationship between Potential and numerical variables through t-tests and boxplots.
+
+In the final section, correlation bettween other variables presumed to be related will be explored through Correlation tests. This includes the height and weight variables; the performance variables (pace, physic, shooting, dribbling, passing, defending); and the ppower variables (power_strength and power_long-shots).
+
+## 2.2 EDA and summary of results  
+
+*Undertake and summarise the findings of your data exploration, particularly with respect to the research questions.  Use appropriate summary statistics (uni- and multi-variate) and visualisations. (10 marks)*
+
+### 2.2.1 EDA of the Potential variable
+
+A uni-variate analysis of the Potential variable is conducted by exploring its distribution pattern below.
+```{r}
+#using a density plot to visualize the distribution of potential and ensure that it is normal
+plot(density(clean_football$potential), 
+     xlab = "Player Potential", ylab = "Density",
+     main = "The Distribution of Football players' Potential") 
+```
+The density plot illustrates that the players' potential data is normally distributed as there is a bell-shaped curve observed. 
+
+Next, multivariate analysis is conducted by exploring the relationship between Players' Potential and other variables.
+
+First, the relationship between players' potential and preferred foot is examined through visual means and statistical hypothesis testing.
+
+```{r}
+#using a boxplot to visualize whether preferred foot has an effect on a player's potential
+boxplot(clean_football$potential ~ clean_football$preferred_foot,
+        xlab = "Preferred Foot", ylab = "Player Potential",
+        main = "Football players' Potential by Preferred Foot")
+```
+The boxplot seems to suggest that player's that prefer their left foot might have a slightly higher mean potential than players using their right. In order to further test this and its significance, a t-test can be run with the null hypothesis being that there is NO difference in the mean potential of players who prefer their left foot as compared to players who prefer their right foot. The alternative hypothesis, therefore, is there IS a difference in the mean potential of players who prefer their left foot as compared to players who prefer their right foot.
+
+```{r}
+t.test(clean_football$potential ~ clean_football$preferred_foot, alternative="greater")
+```
+The t-test reveals that the means are almost the same at 71.8 for left-footers and 71.2 for right-footers. The p-value of 0.3758 is greater than the standard alpha value of 0.05 and as such suggests that there is not enough evidence to reject the null hypothesis. Thus, there does not seem to be a significant difference in potential based on the players' preferred foot according to the data sample used for the t-test.
+
+
+
+Next, the relationship between players' potential and age is examined through numerical and visual means.
+```{r}
+cor.test(clean_football$age, clean_football$potential) #correlation test for age and potential
+```
+In order to test the relationship between a football player's age and his potential, a correlation test was run as seen above. The correlation coefficient generated is -0.26 which indicates a very weak (i.e. little to no correlation), negative relationship between a player's age and his potential. Furthermore, the p-value is extremely small and hence there may be enough evidence to reject the null hypothesis that there is no relationship between the two variables. Thus, it is probable that there is a slight correlation between the a player's age and his potential where a lower age tends to relate to a higher potential. This relationship needs to be further investigated.
+We can visualize this relationship using a scatter plot with a linear model line to demonstrate how the existing data fits in a linear regression model. This is done below.
+```{r}
+plot(clean_football$age, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Age", ylab = "Player Potential",
+     main = "Football players' Potential versus Age")
+abline(lm(potential ~ age, data = clean_football), 
+       lwd = 2, col = "red")
+```
+The graph demonstrates the negative relationship between the variables as the linear regression line has a downward slope. Additionally, the weak relationship between Age and Potential is apparent since most of the data points do not fit on or around the linear regression line.
+
+
+```{r}
+cor.test(clean_football$height_cm, clean_football$potential)
+cor.test(clean_football$weight_kg, clean_football$potential)
+```
+Next, the relationship between a player's potential and his physical attributes of height and weight have been investigated above, The correlation test for height and potential revealed a correlation coefficient of 0.047 which indicates little to no correlation,  between the two variables. Additionally, the p-value is 0.32 which is larger than the alpha of 0.05 and hence there is not enough evidence to reject the null hypothesis. 
+Similarly, the correlation test for weight and potential revealed a correlation coefficient of -0.0015 which again indicates little to no correlation,  between the two variables. Additionally, the p-value is 0.84 which is larger than the alpha of 0.05 and hence there is not enough evidence to reject the null hypothesis.
+Thus, according to the data used for the correlation test, there does not seem to be a relationship between a player's potential and his height and weight. This can be confirmed visually with a scatter plot and a linear regression line as seen below.
+
+```{r}
+plot(clean_football$height_cm, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Height in cms", ylab = "Player Potential",
+     main = "Football players' Potential versus Height")
+abline(lm(potential ~ height_cm, data = clean_football), 
+       lwd = 2, col = "red")
+
+
+plot(clean_football$weight_kg, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Weight in kgs", ylab = "Player Potential",
+     main = "Football players' Potential versus Weight")
+abline(lm(potential ~ weight_kg, data = clean_football), 
+       lwd = 2, col = "red")
+```
+Both graphs show plot points randomly distributed with not much of a pattern to the data. The linear regression line in the Potential versus Weight plot is almost straight, again indicating no relationship between the two variables. In contrast, the Potential versus Height plot has a linear regression line with a very slight upward slope but extremely few plot points on or near the line, again demonstrating there is little relationship between Player Potential and Height.
+
+
+```{r}
+cor.test(clean_football$physic, clean_football$potential)
+```
+In a similar vein, the relationship between a player's physic and his potential has been examined through a correlation test, above. The correlation test between player's physic and his potential indicates a weak relationship between the two variables since the coefficient generated is 0.22 which is on the lower side. However, the p-value is extremely small and so there may be sufficient evidence to reject the null hypothesis that there is no relationship between a player's physic and his potential. This is visually demonstrated with a scatterplot and linear regression line below.
+```{r}
+plot(clean_football$physic, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Physic", ylab = "Player Potential",
+     main = "Football players' Potential versus Physic")
+abline(lm(potential ~ physic, data = clean_football), 
+       lwd = 2, col = "red")
+```
+The scatter plot illustrates that there is some relationship between a player's Potential and his Physic as seen by the fact that there are some plot points on the linear regression line and near to it as well. There does not seem to be any discernible curvature in the graph so perhaps the linear regression model best fits the data.
+
+
+```{r}
+cor.test(clean_football$pace, clean_football$potential)
+```
+In order to test the relationship between a player's pace and his potential, a correlation test was carried out above. The correlation test generated a correlation coefficient of 0.296 which seems indicative of a weak relationship between the two variables. The extremely small p-value suggests that there is enough evidence to reject the null hypothesis that there is no correlation between the two variables. In order to demonstrate this visually, a scatter plot has been drawn below, with a linear regression line to illustrate the correlation.
+```{r}
+plot(clean_football$pace, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Pace", ylab = "Player Potential",
+     main = "Football players' Potential versus Pace")
+abline(lm(potential ~ pace, data = clean_football), 
+       lwd = 2, col = "red")
+```
+The scatter plot illustrates that there is some relationship between a player's Potential and his pace as seen by the fact that there are some data points on and around the linear regression line. There graph does not illustrate any other pattern in the data so perhaps the linear regression model best fits the data.
+
+
+Next, the relationship between a player's potential and his on-field performance is examined through the attributes of Shooting, Passing, Dribbling and Defending. Again a correlation test has been utilised as shown below.
+```{r}
+cor.test(clean_football$shooting, clean_football$potential)
+cor.test(clean_football$passing, clean_football$potential)
+cor.test(clean_football$dribbling, clean_football$potential)
+cor.test(clean_football$defending, clean_football$potential)
+```
+
+The correlation coefficient for a player's potential and his shooting is 0.34 which indicates a weak relationship. The extremely small p-value suggests that there may be enough evidence to reject the null hypothesis of no correlation between the two variables.
+The correlation coefficient for a player's potential and his passing is 0.53 which indicates a moderate relationship. The extremely small p-value suggests that there may be enough evidence to reject the null hypothesis of no correlation between the two variables.
+Similarly, the correlation coefficient for a player's potential and his dribbling is 0.54 which again indicates a moderate relationship. The extremely small p-value suggests that there may be enough evidence to reject the null hypothesis of no correlation between the two variables.
+Additionally, The correlation coefficient for a player's potential and his defending is 0.25 which indicates a weak relationship. The extremely small p-value suggests that there may be enough evidence to reject the null hypothesis of no correlation between the two variables.
+Thus, a player's on-field performance is correlated to his potential to some extent. This can be visualised through scatterplots and linear regression lines as demonstrated below.
+
+```{r}
+plot(clean_football$shooting, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Shooting", ylab = "Player Potential",
+     main = "Football players' Potential versus Shooting")
+abline(lm(potential ~ shooting, data = clean_football), 
+       lwd = 2, col = "red")
+
+plot(clean_football$passing, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Passing", ylab = "Player Potential",
+     main = "Football players' Potential versus Passing")
+abline(lm(potential ~ passing, data = clean_football), 
+       lwd = 2, col = "red")
+
+plot(clean_football$dribbling, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Dribbling", ylab = "Player Potential",
+     main = "Football players' Potential versus Dribbling")
+abline(lm(potential ~ dribbling, data = clean_football), 
+       lwd = 2, col = "red")
+
+plot(clean_football$defending, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Defending", ylab = "Player Potential",
+     main = "Football players' Potential versus Defending")
+abline(lm(potential ~ defending, data = clean_football), 
+       lwd = 2, col = "red")
+```
+The scatterplot examining the relationship between players' potential and their shooting does not seem to indicate a strong relationship between the two variables as the points seem random and do not adhere to the linear regression line. This is similar to the scatterplot of players' potential and their defending. However, the scatterplot of player's potential versus their passing as well as the scatter plot of player's potential versus their dribbling seems to indicate some kind of relationship between the variables since the data points of both plots seem to be on or around the linear regression lines which corroborates the moderate relationship indicated by the correlation test.
+
+
+Furthermore, the relationship between a player's potential and his power (in terms of strength and long shots) has been examined through a correlation test, below.
+```{r}
+cor.test(clean_football$power_strength, clean_football$potential)
+cor.test(clean_football$power_long_shots, clean_football$potential)
+```
+The correlation test between player's power strength and his potential indicates little to relationship between the two variables since the coefficient generated is 0.07 which is quite low. In addition, the p-value is 0.11 which is larger than the alpha value of 0.05 and so there is insufficient evidence to reject the null hypothesis that there is no relationship between a player's power strength and his potential. 
+On the other hand, the correlation test between player's power long shots and his potential indicates a weak relationship between the two variables since the coefficient generated is 0.33. In addition, the p-value is extremely small and so there may be sufficient evidence to reject the null hypothesis that there is no relationship between a player's power long shots and his potential. 
+Both of these relationships are visually demonstrated with scatter plots and linear regression lines below.
+```{r}
+plot(clean_football$power_strength, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Power Strength", ylab = "Player Potential",
+     main = "Football players' Potential versus Power Strength")
+abline(lm(potential ~ power_strength, data = clean_football), 
+       lwd = 2, col = "red")
+
+plot(clean_football$power_long_shots, clean_football$potential,
+     pch = 19, col = "blue",
+     xlab = "Player Power Long Shots", ylab = "Player Potential",
+     main = "Football players' Potential versus Power Long Shots")
+abline(lm(potential ~ power_long_shots, data = clean_football), 
+       lwd = 2, col = "red")
+```
+The scatter plot of Potential versus Power Strength illustrates that there is little relationship between a player's Potential and his Power Strength as seen by the fact that there are hardly any data points on or near the linear regression line which only has a slight upward slant. 
+In contrast, the scatter plot of Potential versus Power Long Shots illustrates that there is some relationship between a player's Potential and his Power Long Shots since there are some data points on or near the linear regression line which has a steeper slope compared to the previous graph.
+
+Finally, the relationship between players Potential and Wage is examined. The question to be answered is whether players with a higher potential also receive a higher wage. In order to test this, a t-test has been run below, with the null hypothesis being that there is NO difference in the mean potential of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean potential of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$potential ~ clean_football$high.wage.ind, alternative="less")
+```
+
+The t-test reveals that there is a difference in means between the two groups, the lower wage players having a mean potential of 69.27 and the higher wage players having a mean potential of 76.85. The p-value is also extremely small and as such suggests that there may be enough evidence to reject the null hypothesis. Thus, there does seem to be a significant difference in potential based on the players' wage where players with a higher wage have a higher mean potential, according to the data sample used for the t-test. This relationship between player potential and wage is further examined through a correlation test below.
+
+```{r}
+cor.test(clean_football$potential, clean_football$wage_eur)
+```
+
+The coefficient generated from this test is 0.5 which indicates a weak to moderate relationship between a player's potential and the wage he receives. Since the p-value is extremely small, there may be sufficient evidence in order to reject the null hypothesis that there is no relationship between the two variables. The correlation coefficient is also positive indicating that a player with a higher potential would probably be receiving a higher wage. 
+This can be represented visually using a boxplot as shown below.
+
+```{r}
+boxplot(clean_football$potential ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Potential",
+     main = "Football players' Potential by High Wage Indicator")
+```
+The boxplot shows that players with a higher wage have a higher mean potential than those with a weekly wage of less than 8000 euros. However, this is not always the case as evident by the overlapping plots. It also indicates that there are some outlier data points which need to be further examined.
+
+
+### 2.2.2 EDA of the High Wage Indicator variable
+
+A uni-variate analysis of the Wage variable is conducted by exploring its distribution pattern below.
+```{r}
+#using a histogram plot to visualize the distribution of wage_eur and ensure that it is normal
+hist(clean_football$wage_eur, 
+     xlab = "Player Wage in Euros", ylab = "Density",
+     main = "The Distribution of Football players' Wages in Euros") 
+```
+The histogram is not helpful in visualizing the data so a boxplot is used instead.
+
+```{r}
+#using a histogram plot to visualize the distribution of wage_eur and ensure that it is normal
+boxplot(clean_football$wage_eur, 
+     ylab = "Player Wage in Euros",
+     main = "The Range of Football players' Wages in Euros") 
+```
+The boxplot indicates that there are a high number of outlier data points at the higher end of the wage spectrum. However, since there is no way to check with the data collector, the data could not be corrected and deleting such a high number of cases could affect the analysis. Thus, the analysis will move forward on the basis of the assumption that these outlier data points are of world class players who are paid very highly.
+
+
+First, the difference in age between higher paid players and lower paid players is examined.
+```{r}
+boxplot(clean_football$age ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Age",
+     main = "Football players' Age by High Wage Indicator")
+```
+The boxplot indicates that players with a high wage have a higher mean age. In order to test this, a t-test has been run below, with the null hypothesis being that there is NO difference in the mean age of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean age of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$age ~ clean_football$high.wage.ind, alternative="less")
+```
+The t-test reveals that there is a bit of a difference in means between the two groups, the lower wage players having a mean age of 24.51 and the higher wage players having a mean potential of 76.85. The p-value is also extremely small and as such suggests that there may be enough evidence to reject the null hypothesis. Thus, there does seem to be a difference in age based on the players' wage according to the data sample used for the t-test. 
+
+
+Next, the difference in height between higher paid players and lower paid players is examined.
+```{r}
+boxplot(clean_football$height_cm ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Height in cms",
+     main = "Football players' Height by High Wage Indicator")
+```
+The boxplot indicates that there is not much of a difference in height between the highly paid players as compared to their counterparts. In order to further test this, a t-test has been run below, with the null hypothesis being that there is NO difference in the mean height of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean height of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$height_cm ~ clean_football$high.wage.ind, alternative="less")
+```
+
+The t-test reveals that there is not much of a difference in mean heights between the two groups, the lower wage players having a mean height of 179.5 cms and the higher wage players having a mean potential of 180.87. The p-value is 0.012 which is slightly less than the alpha of 0.05 and as such suggests that there may be just enough evidence to reject the null hypothesis but further investigation is required. Thus, there does not seem to be much of a difference in height based on the players' wage according to the data sample used for the t-test. 
+
+Next, the difference in weight between higher paid players and lower paid players is examined.
+```{r}
+boxplot(clean_football$weight_kg ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Weight in kgs",
+     main = "Football players' Weight by High Wage Indicator")
+```
+The boxplot indicates that players with a high wage have a slightly higher mean weight. In order to test this, a t-test has been run below, with the null hypothesis being that there is NO difference in the mean weight of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean weight of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$weight_kg ~ clean_football$high.wage.ind, alternative="less")
+```
+
+The t-test reveals that there is a bit of a difference in means between the two groups, the lower wage players having a mean weight of 73.47 kgs and the higher wage players having a mean potential of 75.23. The p-value is also  small and as such suggests that there may be enough evidence to reject the null hypothesis. Thus, there does seem to be a greater mean weight of players that have a higher wage according to the data sample used for the t-test. 
+
+First, the difference in age between higher paid players and lower paid players is examined.
+```{r}
+boxplot(clean_football$age ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Age",
+     main = "Football players' Age by High Wage Indicator")
+```
+The boxplot indicates that players with a high wage have a higher mean age. In order to test this, a t-test has been run below, with the null hypothesis being that there is NO difference in the mean age of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean age of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$age ~ clean_football$high.wage.ind, alternative="less")
+```
+
+The t-test reveals that there is a bit of a difference in means between the two groups, the lower wage players having a mean age of 24.51 and the higher wage players having a mean age of 26.73. The p-value is also extremely small and as such suggests that there may be enough evidence to reject the null hypothesis. Thus, there does seem to be a difference in age based on the players' wage according to the data sample used for the t-test. 
+
+
+Next, the difference in physic between higher paid players and lower paid players is examined.
+```{r}
+boxplot(clean_football$physic ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Physic",
+     main = "Football players' Physic by High Wage Indicator")
+```
+The boxplot indicates that players with a high wage have a higher mean physic. In order to test this, a t-test has been run below, with the null hypothesis being that there is NO difference in the mean physic of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean physic of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$physic ~ clean_football$high.wage.ind, alternative="less")
+```
+
+The t-test reveals that there is a difference in means between the two groups, the lower wage players having a lower mean physic of of 63.23 and the higher wage players having a mean potential of 69.99. The p-value is also extremely small and as such suggests that there may be enough evidence to reject the null hypothesis. Thus, the higher wage players have a higher mean physic, according to the data sample used for the t-test. 
+
+Next, the difference in pace between higher paid players and lower paid players is examined.
+```{r}
+boxplot(clean_football$pace ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Pace",
+     main = "Football players' Pace by High Wage Indicator")
+```
+The boxplot indicates that players with a high wage have a higher mean pace. In order to test this, a t-test has been run below, with the null hypothesis being that there is NO difference in the mean pace of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean age of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$pace ~ clean_football$high.wage.ind, alternative="less")
+```
+
+The t-test reveals that there is a difference in means between the two groups, the lower wage players having a lower mean pace of 66.41 and the higher wage players having a mean pace of 69.46. The p-value is also  small and as such suggests that there may be enough evidence to reject the null hypothesis. Thus, players with a higher wage have a higher mean pace, according to the data sample used for the t-test. 
+
+Another dimension to be examined is, the difference in on-field performance between higher paid players and lower paid players.
+```{r}
+boxplot(clean_football$shooting  ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Shooting",
+     main = "Football players' Shooting by High Wage Indicator")
+
+boxplot(clean_football$passing ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Passing",
+     main = "Football players' Passing by High Wage Indicator")
+
+boxplot(clean_football$dribbling ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Dribbling",
+     main = "Football players' Dribbling by High Wage Indicator")
+
+boxplot(clean_football$defending ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Defending",
+     main = "Football players' Defending by High Wage Indicator")
+```
+The boxplots indicate that players with a high wage have a higher mean on-field performance in terms of shooting, passing, dribbling and defending. In order to further test this, t-tests heve been run below, with the null hypothesis being that there is NO difference in the mean on-field performance of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean on field performance of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$shooting ~ clean_football$high.wage.ind, alternative="less")
+t.test(clean_football$passing ~ clean_football$high.wage.ind, alternative="less")
+t.test(clean_football$dribbling ~ clean_football$high.wage.ind, alternative="less")
+t.test(clean_football$defending ~ clean_football$high.wage.ind, alternative="less")
+```
+
+The t-tests reveals that there is a significant a difference in mean on-field performance between the two groups.
+- In terms of shooting, the lower wage players have a mean of 49.02 and the higher wage players have a higher mean of 60.10
+- In terms of passing, the lower wage players have a mean of 54.5 and the higher wage players have a higher mean of 67
+- In terms of dribbling, the lower wage players have a mean of 59.79 and the higher wage players have a higher mean of 70.35
+- In terms of shooting, the lower wage players have a mean of 50.87 and the higher wage players having a higher mean of 60.34 
+
+The p-value for each of the tests is also extremely small and as such suggests that there may be enough evidence to reject the null hypotheses that there is no difference in means. Thus, a higher paid player tends to have a higher mean in shooting, passing, dribbling and defending according to the data sample used for the t-test. 
+
+Further to this, the difference in power between higher paid players and lower paid players is examined.
+```{r}
+boxplot(clean_football$power_strength  ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Power Strength",
+     main = "Football players' Power Strength by High Wage Indicator")
+
+boxplot(clean_football$power_long_shots ~ clean_football$high.wage.ind,
+     xlab = "High Wage Indicator", ylab = "Player Power Long Shots",
+     main = "Football players' Power Long Shots by High Wage Indicator")
+```
+Again, the boxplots indicate that players with a high wage have a higher mean power in terms of strength and long shots. In order to further test this, t-tests heve been run below, with the null hypothesis being that there is NO difference in the mean power of players who are paid a wage of over 8000 Euros as compared to their counterparts. The alternative hypothesis, therefore, is there IS a difference in the mean power performance of players who are paid a high wage of over 8000 Euros as compared to those paid lower.
+```{r}
+t.test(clean_football$power_strength ~ clean_football$high.wage.ind, alternative="less")
+t.test(clean_football$power_long_shots ~ clean_football$high.wage.ind, alternative="less")
+```
+
+The t-tests reveals that there is a difference in mean power between the two groups:
+- In terms of power strength, the lower wage players have a mean of 64.14 and the higher wage players have a slightly higher mean of 69.27
+- In terms of power long shots, the lower wage players have a mean of 47.71 and the higher wage players have a higher mean of 60.23
+
+The p-value for each of the tests is also extremely small and as such suggests that there may be enough evidence to reject the null hypotheses that there is no difference in means. Thus, a higher paid player tends to have a higher mean in power strength and power long shots according to the data sample used for the t-test.
+
+Finally, the player's preferred foot is explored in relation to the high wage indicator. This is visually explored through a barplot shown below.
+```{r}
+barplot(table(clean_football$preferred_foot, clean_football$high.wage.ind),
+        beside = T, legend.text = T,
+        xlab = "High Wage Indicator", ylab = "Frequency",
+        main = "Football players' Preferred Foot by High Wage Indicator" )
+```
+The barplot illustrates that there are more players preferring their right foot and that there are fewer players with a higher wage, but not much more information. Thus, a Chi-Squared test is run below to test if there is a relationship between preferred foot and a higher wage for the players.
+The null hypothesis that we are testing is: $H_0$: The preferred foot and high wage are independent.
+The alternative hypothesis is: $H_1$: There is a relationship between the preferred foot and the higher wage.
+
+```{r}
+chisq.test(table(clean_football$high.wage.ind, clean_football$preferred_foot))
+```
+The Chi-Squared Test returned a p-value of 0.48 which is higher than the alpha of 0.05 which indicates that there is not enough evidence to reject the null hypothesis. Thus, it is probable that there is no relationship between the two variables. 
+
+### 2.2.3 Exploring other variable relationships
+
+First, we examine the relationship between players' height and weight. The null hypothesis is that there is no relationship between height and weight; and the alternative hypothesis is that a correlation exists.
+```{r}
+cor.test(clean_football$weight_kg, clean_football$height_cm)
+
+plot(clean_football$weight_kg, clean_football$height_cm,
+     pch = 19, col = "blue",
+     xlab = "Player Weight in kgs", ylab = "Player Height in cms",
+     main = "Football players' Weight versus Height")
+abline(lm(height_cm ~ weight_kg, data = clean_football), 
+       lwd = 2, col = "red")
+```
+The correlation test confirms that there is a moderate to high relationship between players' height and weight as the correlation coefficient is 0.75. An extremely small p-value indicates that there may be enough evidence to reject the null hypothesis. This is confirmed visually through the scatterplot where a clear correlation is evident with plot points on and around the linear regression line.
+
+Next, we explore the relationship between the variables indicative of a player's performance, i.e., pace, physic, passing, shooting, dribbling and defending.
+```{r}
+player_performance <- data.frame(clean_football$pace, clean_football$shooting, clean_football$passing,  
+                   clean_football$dribbling, clean_football$defending, clean_football$physic)
+colnames(player_performance) <- c("Pace", "Shooting", "Passing", "Dribbling", "Defending", "Physic")
+
+cor(player_performance)
+corrplot(cor(player_performance))
+```
+The correlation co-efficient matrix illustrates the following:
+- a high correlation between Dribbling and Passing  with a correlation coefficient of 0.86
+- moderate to high correlation between Dribbling and Shooting with a correlation coefficient of 0.77
+- moderate relationship between Passing and Shooting with a correlation coefficient of 0.69
+- moderate relationship between Dribbling and Pace with a correlation coefficient of 0.54
+- weak to moderate correlation between Defending and Physic with a correlation coefficient of 0.50
+- weak negative correlation between Defending and shooting with a correlation coefficient of -0.36
+- weak correlation between Pace and shooting with a correlation coefficient of 0.34
+- weak correlation between Pace and Passing with a correlation coefficient of 0.34
+
+Finally, we explore the relationship between the power variables of players strength and long shots
+```{r}
+cor.test(clean_football$power_strength, clean_football$power_long_shots)
+
+plot(clean_football$power_strength, clean_football$power_long_shots,
+     pch = 19, col = "blue",
+     xlab = "Player Power Strength", ylab = "Player Power Long Shots",
+     main = "Football players' Power Strength versus Power Long Shots")
+abline(lm(power_long_shots ~ power_strength, data = clean_football), 
+       lwd = 2, col = "red")
+```
+The correlation coefficient generated is 0.02 which indicates almost no correlation between a player's power strength and his power long shots. Furthermore, the p-value is 0.96 which is greater than the alpha value of 0.05 and hence there is not enough evidence to reject the null hypothesis that there is no relationship between the two variables. This is further confirmed by the scatter plot since most of the data points do not fit on or around the linear regression line and the line itself has almost no slope.
+
+
+## 2.3 Additional insights and issues
+
+### 2.3.1 Linear Regression Models
+Further exploration of the linear regression models from 2.2.1 is conducted to determine goodness of fit and if any other issues or insights can be uncovered.
+
+First, the linear regression model between players' potential and age is examined.
+```{r}
+ageLinearModel <- lm(potential ~ age, data = clean_football)
+summary(ageLinearModel)
+plot(ageLinearModel)
+```
+The model provides the following equation: potential $= 81.09767- 0.38654\age$ power_strength
+The F-statistic of the model is not acceptable, though not great, at 36.67. However, the R-squared statistic is 0.067 which indicates that not much of the variance in the data can be explained by the linear regression model. This suggests that the model is not the best, even though the intercepts are significant and the p-value is extremely small. The model indicates that a decrease in age by a year corresponds to an increase of player's potential by 0.39.
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are some outliers at both ends which need to be further examined.
+Thus, the linear regression model seems to provide the best fit for the relationship between a player's Age and his Potential, though further samples could help to enhance it.
+
+Next, the linear regression model between players' potential and height is explored.
+```{r}
+heightLinearModel <- lm(potential ~ height_cm, data = clean_football)
+summary(heightLinearModel)
+plot(heightLinearModel)
+```
+The model provides the following equation: potential $= 62.87828+ 0.04728\times$ height_cm
+The F-statistic of the model is very low at 1.1 which indicates that this is not a very good model; and the R-squared value is also extremely low at 0.002 which indicates that not much of the variance is explained by the linear regression model. 
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are few outlier data points at both ends which need to be further examined.
+Thus, the diagnostics confirm that there is not much of a linear relationship between a player's potential and his height where an increase in height by a cm has an increase in a player's potential by just 0.05.
+
+Next, the linear regression model between players' potential and weight is explored.
+```{r}
+weightLinearModel <- lm(potential ~ weight_kg, data = clean_football)
+summary(weightLinearModel)
+plot(weightLinearModel)
+```
+The model provides the following equation: potential $= 71.495347- 0.001521\times$ power_strength
+The F-statistic of the model is extremely low at 0.001 which indicates that this is not a very good model; however the R-squared value is 2.3 which is extremely high which is at odds with the F-statistic. 
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is mostly normally distributed though there are plot points not adhering to the line. Additionally, the Q-Q plot indicates a few outlier data points at both ends which need to be further examined.
+Thus, the diagnostics confirm that there is not much of a linear relationship between a player's potential and his weight as an increase of player's weight by one kg corresponds to a decrease in potential by 0.0015.
+
+Next, the linear regression model between players' potential and pace is explored.
+```{r}
+paceLinearModel <- lm(potential ~ pace, data = clean_football)
+summary(paceLinearModel)
+plot(paceLinearModel)
+```
+The model provides the following equation: potential $= 59.23252+ 0.18064\times$ pace
+The F-statistic of the model is acceptable at 48.79 but the R-squared value is very low at 0.087 which indicates that hardly any of the variance is explained by the linear regression model. However, since the co-efficients are significant and the p-value is very small, the linear model is probably the best fit for the data at hand in examining the relationship between a player's potential and his pace. The model suggests that for an increase in pace by 1 unit, the player's potential increases by 0.18.
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are some outlier data points at both ends which need to be further examined.
+
+Next, the linear regression model between players' potential and shooting is explored. 
+```{r}
+shootingLinearModel <- lm(potential ~ shooting, data = clean_football)
+summary(shootingLinearModel)
+plot(shootingLinearModel)
+```
+The model provides the following equation: potential $= 63.34350+ 0.15425\times$ shooting
+The F-statistic of the linear model between players' Potential and Shooting is quite good at 65.49. However, the R-squared value is  low at 0.11 which indicates that not much of the variance is explained by the linear regression model. The model suggests that each increase of shooting by one unit corresponds to an increase in potential by 0.15.
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are few outlier data points at both ends which need to be further examined.
+Thus, the diagnostics confirm that the linear regression model has the best fit in examining the relationship between a player's potential and his pace, according to the data provided due to the low p-value, siginificance of coefficients and acceptable F-statistic.
+
+Next, the linear regression model between players' potential and passing is explored.
+```{r}
+passingLinearModel <- lm(potential ~ passing, data = clean_football)
+summary(passingLinearModel)
+plot(passingLinearModel)
+```
+The model provides the following equation: potential $= 52.8075+ 0.3203\times$ passing
+The F-statistic of the linear model between players' Potential and Passing is good at 197.4. In contrast, the R-squared value is  low at 0.27 which indicates that hardly any of the variance is explained by the linear regression model. The model suggests that each increase of passing by one unit also has an increase in potential by 0.32.
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are some outlier data points at both ends which need to be further examined.
+Thus, the diagnostics confirm that the linear regression model has the best fit in examining the relationship between a player's potential and his passing, according to the data provided, due to the low p-value, siginificance of coefficients and good F-statistic.
+
+Next, the linear regression model between players' potential and dribbling is explored.
+```{r}
+dribblingLinearModel <- lm(potential ~ dribbling, data = clean_football)
+summary(dribblingLinearModel)
+plot(dribblingLinearModel)
+```
+The model provides the following equation: potential $= 49.88817+ 0.34259\times$ dribbling
+The F-statistic of the linear model between players' Potential and Dribbling is very good at 212.8. However, the R-squared value is  low at 0.29 which indicates that not much of the variance is explained by the linear regression model. The model suggests that each increase of dribbling by one unit leads also has an increase in potential by 0.34.
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are few outlier data points at both ends which need to be further examined.
+Thus, the diagnostics confirm that the linear regression model has the best fit in examining the relationship between a player's potential and his Dribbling, according to the data provided due to the low p-value, siginificance of coefficients and acceptable F-statistic.
+
+Next, the linear regression model between players' potential and defending is explored.
+```{r}
+defendingLinearModel <- lm(potential ~ defending, data = clean_football)
+summary(defendingLinearModel)
+plot(defendingLinearModel)
+```
+The model provides the following equation: potential $= 65.79408+ 0.10443\times$ defending
+The F-statistic of the linear model between players' Potential and Defending is acceptable but not great at 35.17. However, the R-squared value is  low at 0.06 which indicates that very little of the variance is explained by the linear regression model. The model suggests that each increase of Defending by one unit also has an increase in potential by 0.10.
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are few outlier data points at both ends which need to be further examined.
+Thus, the diagnostics confirm that the linear regression model has the best fit in examining the relationship between a player's potential and his Defending, as per  the data provided, due to the low p-value, siginificance of coefficients and acceptable F-statistic.
+
+Next, the linear regression model between players' potential and physic is explored.
+```{r}
+physicLinearModel <- lm(potential ~ physic, data = clean_football)
+summary(physicLinearModel)
+plot(physicLinearModel)
+```
+The model provides the following equation: potential $= 61.54164+ 0.15113\times$ physic
+The F-statistic of the linear model between players' Potential and Physic is low but acceptable at 26.96. However, the R-squared value is very low at 0.05 which indicates that hardly any of the variance is explained by the linear regression model. The model suggests that each increase of physic by one unit corresponds to an increase in potential by 0.15.
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are few outlier data points at both ends which need to be further examined.
+Thus, the diagnostics confirm that the linear regression model has the best fit in examining the relationship between a player's potential and his Physic, according to the data provided due to the low p-value, siginificance of coefficients and acceptable F-statistic.
+
+Next, the linear regression model between players' potential and power strength is explored.
+```{r}
+strengthLinearModel <- lm(potential ~ power_strength, data = clean_football)
+summary(strengthLinearModel)
+plot(strengthLinearModel)
+```
+The model provides the following equation: potential $= 68.93139+ 0.03739\times$ power_strength
+The F-statistic of the linear model between players' Potential and his Power Strength is very low at 2.515. Similarly, the R-squared value is extremely low at 0.005 which indicates that hardly any of the variance is explained by the linear regression model.
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are few outlier data points at both ends which need to be further examined.
+Thus, the diagnostics indicate that the linear regression is not very good at explaining the relationship between a players' Potential and his power strength as it suggests that each increase of power strength by one unit has a corresponding  increase in potential by 0.04. 
+
+Next, the linear regression model between players' potential and power long shots is explored.
+```{r}
+longShotsLinearModel <- lm(potential ~ power_long_shots, data = clean_football)
+summary(longShotsLinearModel)
+plot(longShotsLinearModel)
+```
+The model provides the following equation: potential $= 64.59078+ 0.13264\times$ power_long_shots and so suggests that each increase of power long shots by one unit has a corresponding increase in potential by 0.13. 
+The F-statistic of the linear model between players' Potential and Power Long Shots is quite good at 62.19. However, the R-squared value is  low at 0.11 which indicates that not much of the variance is explained by the linear regression model. The model suggests that each increase of power long shots by one unit leads to an increase in potential by 0.13. 
+On checking the Diagnostic plots, there is no evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is normally distributed though there are few outlier data points at both ends which need to be further examined.
+Thus, the diagnostics confirm that the linear regression model has the best fit in examining the relationship between a player's potential and his pace, according to the data provided due to the low p-value, siginificance of coefficients and acceptable F-statistic.
+
+Finally, the linear regression model between players' potential and wage is explored.
+```{r}
+wageLinearModel <- lm(wage_eur ~ potential, data = clean_football)
+summary(wageLinearModel)
+plot(wageLinearModel)
+```
+The model provides the following equation: potential $= -117513.0+ 1799.8\times$ wage_eur and so suggests that for each increase of wage in euros by one unit, there is an increase in potential by 1799.8. 
+The F-statistic of the linear model between players' Potential and Wage is good at 169.6. On the other hand, the R-squared value is  low at 0.25 which indicates that hardly any of the variance is explained by the linear regression model. 
+On checking the Diagnostic plots, there is some evidence of heteroscedasticy in the 'Residuals vs Fitted' plot. Additionally, the 'Q-Q' plot signals that the data is mostly normally distributed though there is some curvature to the data.
+Thus, the diagnostics indicate that the linear regression model may need to have some transformations incorporated into it in order to provide the best fit in examining the relationship between a player's potential and his wage.
+
+
+# 3. Modelling
+
+## 3.1 Build a model for player potential
+
+### 3.1.1 Analysis Plan
+Since there are multiple variables that need to be incorporated into the model, a multiple regression approach is considered appropriate (Crawley, 2015). From the EDA, there is no significant relationship between player potential and preferred foot, so there is no need for an ANCOVA approach as no factor variables are being considered (Crawley, 2015). Additionally, the EDA revealed the relationship between player age, height and weight thus these should be modeled with interactions between them. The player performance attributes will not be modeled with interactions between them as this would create a very complex model that would be difficult to explain However, the attributes power strength and power long shots can be modeled with interactions in order to simply check. Thus, this would provide the maximal model which would then be scaled down to the minimal model using the step() function and manually removing insignificant variables, if necessary.
+
+### 3.1.2 Implementation of the Plan for modeling player potential
+
+First, the maximal model is created as per the plan.
+  
+```{r}
+maximalPotentialModel <- lm(potential ~ age * height_cm * weight_kg + pace + shooting + dribbling + passing + defending + physic + power_strength *
+                              power_long_shots + wage_eur, data = clean_football)
+summary(maximalPotentialModel)
+```
+The step() function is now used to develop the model further by removing insignificant variables.
+```{r}
+step(maximalPotentialModel)
+```
+The model suggested by the step() function is now created below and examined.
+```{r}
+stepPotentialModel <- lm(formula = potential ~ age + height_cm + weight_kg + shooting + 
+    dribbling + defending + physic + power_strength + power_long_shots + 
+    wage_eur + age:height_cm + age:weight_kg + height_cm:weight_kg + 
+    power_strength:power_long_shots, data = clean_football)
+summary(stepPotentialModel)
+```
+The final model proposed by the step function still has the attribute height which has a coefficient with no significance and thus this will be manually removed to create the minimal model.
+
+```{r}
+minimalPotentialModel <- lm(formula = potential ~ age + weight_kg + shooting + 
+    dribbling + defending + physic + power_strength + power_long_shots + 
+    wage_eur + age:height_cm + age:weight_kg + height_cm:weight_kg + 
+    power_strength:power_long_shots, data = clean_football)
+summary(minimalPotentialModel)
+```
+The minimal model now has all coefficients with a significance, an improved F-statistic and has only had a slight impact on the R-squared value. Thus, this model can be considered as the final model for players potential.
+
+## 3.2 Critique model using relevant diagnostics
+
+First the summary statistics of the model are examined.
+```{r}
+summary(minimalPotentialModel)
+```
+The F-statistic of the model is 96.07 which indicates a model with good fit. The R-squared value is also good at 0.71 indicating that much of the variance is explained by the model. In additional to all the coefficients having significant p-values, the overall p-value is also extremely low which is heartening. However, graphical diagnostocs still need to be examined, which is done below.
+```{r}
+plot(minimalPotentialModel)
+```
+The 'Residuals vs Fitted' plot does not illustrate anything concerning and there is no evidence of heteroscedasticy. The 'Q-Q' plot is also good and indicates normal distribution with only few outliers. Thus, the graphical diagnostics confirm this to be an acceptable model.
+
+However, the model may have some potential weaknesses. The model does not consider many interactions between the variables for the sake of keeping the model simple and explainable. But, this may have been a trade-off against a model with better goodness of fit. Additionally, the outliers of variables that were considered in the data set, particularly in the wage variable, may have also had some impact on the model and this might require further examination. Further, the wage variable was not transformed though the EDA indicated that it may provide a better fit.
+
+
+## 3.3 Suggest improvements to your model
+
+In order to address the potential weaknesses in the model that were discussed in the previous subsection, some possible alternative approaches can be considered:
+- The height and weight variables could be combined into a single BMI variable (using the relevant formula) 
+- the performance variables could also be combined (in consultation with field experts) into attacking and defending variables and then interactions between these two variables might be easier to model
+- examine the outlier data by first consulting with the data collector and ensuring better data quality for a better model
+- transformation of the wage variable
+
+# 4. Extension work
+
+## 4.1 Model the likelihood of a player having a weekly wage above 8000 Euro (using the high.wage.ind variable provided).
+
+### 4.1.1 Analysis Plan
+As the target variable is a binary variable, the proposed model is a Logistic Regression (Crawley, 2015). From the EDA, there is no significant relationship between player potential and preferred foot, so again, it will not be considered. Additionally, the EDA revealed the relationship between player age, height and weight thus these should be modeled with interactions between them. The player performance attributes will not be modeled with interactions between them as this would create a very complex model that would be difficult to explain However, the attributes power strength and power long shots can be modeled with interactions in order to simply check. Thus, this would provide the maximal model which would then be scaled down to the minimal model using the step() function and manually removing insignificant variables, if necessary.
+
+### 4.1.2 Implementation of the plan for the Wage Model
+```{r}
+wageLogisticRegressionModel1 <- glm(clean_football$high.wage.ind ~ clean_football$potential + 
+                                     clean_football$age * clean_football$height_cm * clean_football$weight_kg + 
+                                     clean_football$pace + clean_football$shooting + clean_football$dribbling + clean_football$passing +
+                                     clean_football$defending + clean_football$physic + 
+                                     clean_football$power_strength * clean_football$power_long_shots, 
+                                   family = binomial)
+summary(wageLogisticRegressionModel1)
+```
+The maximal model will be further developed using the step() function below:
+```{r}
+step(wageLogisticRegressionModel1)
+```
+```{r}
+wageLogisticRegressionModel2 <- glm(formula = clean_football$high.wage.ind ~ clean_football$potential + 
+    clean_football$age + clean_football$height_cm + clean_football$weight_kg + 
+    clean_football$passing + clean_football$age:clean_football$height_cm + 
+    clean_football$age:clean_football$weight_kg, family = binomial)
+summary(wageLogisticRegressionModel2)
+```
+The model proposed by the step() function has coefficients that are all significant as well as a high AIC value of 305.7. Thus it can be accepted as the final model.
+
+### 4.1.3 Answering the research question
+The Logistic Regression Model can now be used to predict the likelihood of a player having a wage greater than 8000 Euros as shown below.
+```{r}
+clean_football$high.wage.likelihood <- predict(wageLogisticRegressionModel2, type = "response")
+head(clean_football)
+```
+
+### 4.1.4 Examining the model
+In order to check the model, the odds ratio can be calculated as done below.
+```{r}
+exp(coef(wageLogisticRegressionModel2))
+```
+The model demonstrates that the likelihood of a player getting a wage higher than 8000 Euros is determined by his potential, age, height, weight, passing in addition to his age and height together as well as his age and weight together. The likelihood of a wage higher than 8000 Euros is improved by a factor of the corresponding odds ratio shown above.
+
+However, the model has potential weaknesses particularly the outliers in the wage variable which have been included in the data set may have had some impact on the model and this might require further examination. Further, the potential variable was not transformed though the EDA indicated that it may provide a better fit.
+
+# References  
+
+1. Arnett, G. and Franklin, W., (2021). *What boxing weightclasses would Premier League footballers fit in?* [online] The Guardian. Available at: <https://www.theguardian.com/news/datablog/2014/oct/16/what-boxing-weightclasses-would-premier-league-footballers-fit-in?CMP=twt_gu> [Accessed 23 December 2021].
+2. Crawley, M.J. 2015, *Statistics: an introduction using R*, Second edn, Wiley, Chichester, West Sussex.
+3. Devano, S., (2021). *Top 10 Tallest Soccer Players In The World | All-Time Ranking*. [online] SportsBrowser. Available at: <https://sportsbrowser.net/tallest-soccer-players/> [Accessed 23 December 2021].
+4. Kalen, A., Rey, E., de Rellán-Guerra, A. and Lago-Peñas, C., (2019). Are Soccer Players Older Now Than Before? Aging Trends and Market Value in the Last Three Decades of the UEFA Champions League. *Frontiers in Psychology*, 10(76), pp.1-6. [Accessed 23 December 2021]
+5. Oldest.org. (2021). *11 Oldest Soccer Players in the World (Updated 2021)*. [online] Available at: <https://www.oldest.org/sports/soccer-players/> [Accessed 23 December 2021].
+
+
