@@ -1,0 +1,39 @@
+package org.myorg;
+
+import java.io.IOException;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class SemAvgMapper extends Mapper <LongWritable, Text, Text, DoubleWritable>
+//input key-value pair is:
+	//key: RowNumber of type LongWritable (LongWritable instead of Long for MapReduce)
+	//value: RowContents of type Text (Text instead of String for MapReduce)
+//output key-value pair is:
+	//key:StudentID and SemesterName of type Text
+	//value: Marks of type DoubleWritable (DoubleWritable instead of Double for MapReduce)
+{
+	//declaring and assigning empty variables to be assigned values from the dataset row being read
+	private String studentID = " ";
+	private String semester = " ";
+    private double marks = 0;
+	
+	@Override
+	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException
+	{
+		if(value.toString().startsWith("Student_ID|Semster_Name|Paper_ID|Paper_Name|Marks")){
+		      // Skip header line (first line) of text file
+		       return;
+		}
+		
+		String[] arr = value.toString().split("\\|"); //delimiter in the .txt file is '|'
+		//using a String array to assign values from the dataset row being read
+		studentID = arr[0].toString();
+		semester = arr[1].toString();
+		marks = Double.parseDouble(arr[4].trim());
+		
+		//writing the output key-value pair as defined above
+		context.write(new Text(studentID + " " + semester), new DoubleWritable(marks));
+	}
+}

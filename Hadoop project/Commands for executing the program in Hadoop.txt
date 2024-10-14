@@ -1,0 +1,19 @@
+hdfs namenode -format
+
+start-dfs.sh
+
+start-yarn.sh
+
+jps
+
+hdfs dfs -mkdir /input
+
+hdfs dfs -mkdir /temp
+
+hdfs dfs -put Downloads/Student_Performance_Data.txt /input
+
+hadoop jar Downloads/SemesterAverages2.jar SemesterAverages2 /input/Student_Performance_Data.txt temp output
+
+hdfs dfs -get output output
+
+hdfs dfs -get temp

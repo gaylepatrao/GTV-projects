@@ -1,0 +1,37 @@
+package org.myorg;
+
+import java.io.IOException;
+import java.util.ArrayList;
+
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class SemAvgReducer extends Reducer<Text, DoubleWritable,Text, Text>
+//input key-value pair is:
+	//key:StudentID and SemesterName of type Text (Text instead of String for MapReduce)
+	//value: Marks of type DoubleWritable (DoubleWritable instead of Double for MapReduce)
+//output key-value pair is:
+	//key:StudentID and SemesterName of type Text
+	//value: AverageMarks of type Text
+{	
+	public void reduce(Text key, Iterable<DoubleWritable> values, Context context) throws IOException, InterruptedException
+	{ 
+		//creating an ArrayList of type Double to hold all the marks achieved by a student in a semester across all papers
+		ArrayList<Double> marksList = new ArrayList<Double>();
+		//creating an empty variable of type Double to sum the total marks for each student in a semester
+		double marksTotal = 0.0;
+		
+		//Looping through all the values for each unique StudentID and SemesterName key
+		for (DoubleWritable value : values)
+		{
+			marksList.add(value.get()); //adding the marks achieved to the ArrayList
+			marksTotal = marksTotal + value.get(); //totalling the marks achieved
+		}
+		int size = marksList.size(); //getting the total count of marks achieved
+		double avgMarks = marksTotal/size; //calculating the average marks
+		
+		//writing the output key-value pair as defined above
+		context.write(key, new Text(Double.toString(avgMarks)));
+	}
+}

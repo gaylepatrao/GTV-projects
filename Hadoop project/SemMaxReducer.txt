@@ -1,0 +1,42 @@
+package org.myorg;
+
+import java.io.IOException;
+
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class SemMaxReducer extends Reducer<Text, Text,Text, Text>
+//input key-value pair is:
+	//key: SemesterName of type Text (Text instead of String for MapReduce)
+	//value: StudentID and AverageMarks of type Text
+//output key-value pair is:
+	//key: SemesterName of type Text
+	//value: StudentID and HighestAverageMarks of type Text
+{	
+	public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException
+	{
+		//declaring and assigning empty variables to be assigned values according to the highest average mark
+		double highestAvg = 0;
+		String studentID = " " ;
+		String avg = " ";
+	
+		//Looping through all the values for each unique SemesterName key
+		for (Text val : values)
+		{
+			//using a String array to read StudentID and AverageMarks values associated with the key
+			String arr[] = val.toString().split("\\s");
+			if (highestAvg < Double.parseDouble(arr[1]))
+				//comparing the current HighestAverageMarks to the next Iterable value
+			{
+				//setting the HighestAverageMarks
+				highestAvg = Double.parseDouble(arr[1]);
+				avg = arr[1].toString();
+				//setting the associated StudentID
+				studentID = arr[0].toString();
+			}
+		}
+		
+		//writing the output key-value pair as defined above
+		context.write(new Text(key), new Text(studentID + ": " + avg));
+	}
+}

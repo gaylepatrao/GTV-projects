@@ -1,0 +1,32 @@
+package org.myorg;
+
+import java.io.IOException;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class SemMaxMapper extends Mapper <Object, Text, Text, Text>
+//input key-value pair is:
+	//key: RowObject of type Object
+	//value: RowContents of type Text (Text instead of String for MapReduce)
+//output key-value pair is:
+	//key: SemesterName of type Text
+	//value: StudentID and AverageMarks of type Text
+{
+	//declaring and assigning empty variables to be assigned values from the dataset row being read
+	private String semester = " ";
+	private String studentID = " ";
+    private double avgMarks = 0;
+	
+	@Override
+	public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException
+	{
+		String[] arr = value.toString().split("\\s"); //delimiter in the .txt file is ' ' (i.e. single blank space)
+		//using a String array to assign values from the dataset row being read
+		studentID = arr[0].toString();
+		semester = arr[1].toString();
+		avgMarks= Double.parseDouble(arr[2].trim());
+		
+		//writing the output key-value pair as defined above
+		ctx.write(new Text(semester), new Text(studentID + " " + avgMarks));
+	}
+}
