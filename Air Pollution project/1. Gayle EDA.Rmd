@@ -1,0 +1,318 @@
+---
+title: "DDA"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##0. Loading required libraries
+```{r}
+library(kohonen)
+library(dplyr)
+library(ggcorrplot)
+```
+
+## 1. Loading the unprocessed data
+```{r}
+setwd("C:/Users/2130988/Documents/DDA")
+
+files <- c("PRSA_Data_Aotizhongxin_20130301-20170228.csv", "PRSA_Data_Changping_20130301-20170228.csv", "PRSA_Data_Dingling_20130301-20170228.csv",
+           "PRSA_Data_Dongsi_20130301-20170228.csv", "PRSA_Data_Guanyuan_20130301-20170228.csv", "PRSA_Data_Gucheng_20130301-20170228.csv",
+           "PRSA_Data_Huairou_20130301-20170228.csv", "PRSA_Data_Nongzhanguan_20130301-20170228.csv", "PRSA_Data_Shunyi_20130301-20170228.csv",
+           "PRSA_Data_Tiantan_20130301-20170228.csv", "PRSA_Data_Wanliu_20130301-20170228.csv", "PRSA_Data_Wanshouxigong_20130301-20170228.csv")
+
+pollution <- do.call(rbind, lapply(files, read.csv, skip = 1, header = FALSE, stringsAsFactors = TRUE)) #combining all csv files into one data frame without header (https://stackoverflow.com/questions/40348902/import-multiple-csvs-without-headers-into-single-r-data-frame)
+
+colnames(pollution) <- colnames(read.csv(files[1])) #setting the column names (https://statisticsglobe.com/read-only-header-of-file-in-r)
+```
+
+## 2. Identifying missing and outlier data
+```{r}
+# Checking the data
+head(pollution)
+tail(pollution)
+str(pollution)
+summary(pollution)
+```
+
+
+```{r}
+# Boxplots of Air pollutants to identify outliers
+opar <- par(no.readonly = TRUE)
+par(mfrow = c(2,3))
+
+boxplot(pollution$PM2.5, main = "PM2.5 boxplot")
+boxplot(pollution$PM10, main = "PM10 boxplot")
+boxplot(pollution$SO2, main = "SO2 boxplot")
+boxplot(pollution$NO2, main = "NO2 boxplot2")
+boxplot(pollution$CO, main = "CO boxplot")
+boxplot(pollution$O3, main = "O3 boxplot")
+
+par(opar)
+```
+
+```{r}
+# Boxplots of Climate Factors to identify outliers
+opar <- par(no.readonly = TRUE)
+par(mfrow = c(2,3))
+
+boxplot(pollution$TEMP, main = "Temperature boxplot")
+boxplot(pollution$PRES, main = "Pressure boxplot")
+boxplot(pollution$DEWP, main = "Dew Point boxplot")
+boxplot(pollution$RAIN, main = "Rainfall boxplot")
+boxplot(pollution$WSPM, main = "Wind Speed boxplot")
+
+par(opar)
+```
+
+
+```{r}
+# Checking for NAs
+colSums(is.na(pollution))
+```
+
+## 3. Loading the pre-processed data (pre-processing done in Python Dask)
+```{r}
+setwd("C:/Users/2130988/Documents/DDA/cleandata")
+files <- c("export-00.csv", "export-01.csv", "export-02.csv", "export-03.csv", "export-04.csv", "export-05.csv", "export-06.csv",
+           "export-07.csv", "export-08.csv", "export-09.csv", "export-10.csv", "export-11.csv")
+
+pollution <- do.call(rbind, lapply(files, read.csv, skip = 1, header = FALSE, stringsAsFactors = TRUE)) #combining all csv files into one data frame without header (https://stackoverflow.com/questions/40348902/import-multiple-csvs-without-headers-into-single-r-data-frame)
+
+colnames(pollution) <- colnames(read.csv(files[1])) #setting the column names (https://statisticsglobe.com/read-only-header-of-file-in-r)
+pollution <- pollution[-c(2)]
+
+summary(pollution)
+str(pollution)
+```
+
+## 4. Exploratory Data Analysis
+### 4.1. Gayle Patrao's EDA
+```{r}
+# Boxplots of Air Pollutants
+opar <- par(no.readonly = TRUE)
+par(mfrow = c(2,3))
+
+boxplot(pollution$PM2.5, main = "PM2.5 boxplot")
+boxplot(pollution$PM10, main = "PM10 boxplot")
+boxplot(pollution$SO2, main = "SO2 boxplot")
+boxplot(pollution$NO2, main = "NO2 boxplot2")
+boxplot(pollution$CO, main = "CO boxplot")
+boxplot(pollution$O3, main = "O3 boxplot")
+
+par(opar)
+```
+
+```{r}
+# Boxplots of Climate Factors
+opar <- par(no.readonly = TRUE)
+par(mfrow = c(2,3))
+
+boxplot(pollution$TEMP, main = "Temperature boxplot")
+boxplot(pollution$PRES, main = "Pressure boxplot")
+boxplot(pollution$DEWP, main = "Dew Point boxplot")
+boxplot(pollution$RAIN, main = "Rainfall boxplot")
+boxplot(pollution$WSPM, main = "Wind Speed boxplot")
+
+par(opar)
+```
+
+```{r}
+# Correlation Matrix of Numerical Variables
+model.matrix(~0+., data=pollution[,-c(1:5, 16, 18)]) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag = F, type="lower", lab=TRUE, lab_size=2) + labs(title = "Correlation Matrix for Numerical variables")
+```
+
+```{r}
+#Correlation between DEWP and TEMP
+plot(pollution$DEWP, pollution$TEMP, pch = 19, col = "blue", xlab = "DEWP", ylab = "TEMP", main = "DEWP versus TEMP")
+abline(lm(TEMP ~ DEWP, data = pollution), lwd = 2, col = "red")
+```
+
+```{r}
+#Correlation between DEWP and PRES
+plot(pollution$DEWP, pollution$PRES, pch = 19, col = "blue", xlab = "DEWP", ylab = "PRES", main = "DEWP versus PRES")
+abline(lm(PRES ~ DEWP, data = pollution), lwd = 2, col = "red")
+```
+
+```{r}
+#Correlation between PRES and TEMP
+plot(pollution$PRES, pollution$TEMP, pch = 19, col = "blue", xlab = "PRES", ylab = "TEMP", main = "PRES versus TEMP")
+abline(lm(TEMP ~ PRES, data = pollution), lwd = 2, col = "red")
+```
+
+```{r}
+# Distribution of the target variable PM10
+hist(pollution$PM10, main="Distribution of PM10", xlab = "PM10", ylab="Frequency", col = "blue", prob = TRUE)
+lines(density(pollution$PM10), col = "red", lwd = 2)
+```
+
+
+```{r}
+# Self-organizing Map 
+
+# the data frame needs to be 'cast' into a matrix for SOM training; eliminating unnecessary columns including time data
+pollution_matrix <- as.matrix(pollution[,c(6:15, 17)])
+
+# set the random seed
+set.seed(1999)
+
+# train SOM model with 11x11 hexagonal grid
+pollution_SOM <- xyf(pollution_matrix, pollution$station,
+                     grid = somgrid(12, 12, 'rectangular'))
+
+# set color palettes for map plotting
+ncounts_palette <- colorRampPalette(c("white", "blue"), space = "rgb")
+quality_palette <- colorRampPalette(c("white", "red"), space = "rgb")
+
+# plot the number of objects mapped to each neuron
+plot(pollution_SOM, shape = 'straight', type = 'counts', palette.name = ncounts_palette, main = "Number of objects per neuron")
+
+# plot the mean distance of objects mapped to each neuron
+plot(pollution_SOM, shape = 'straight', type = 'quality', palette.name = quality_palette, main = "Mean distance of objects in each neuron")
+
+# plot the values of variables describing each neuron
+plot(pollution_SOM, shape = 'straight', type = 'codes', palette.name = rainbow, main = c("Air Quality Factors", "Station"))
+```
+
+
+###4.2 Aleksander Dominas' EDA
+```{r}
+###Importing libraries 
+
+library(corrplot)
+library(VIM)
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+library(validate)
+library(ggplot2)
+library(imputeTS)
+library(cluster)
+library(factoextra)
+```
+
+```{r}
+pollution_Aotizhongxin <- pollution[pollution$station == 'Aotizhongxin',]
+head(pollution)
+```
+
+```{r}
+### Selecting only NUMERIC columns (the index numbers may be different for you guys, but essentially you need PM10, SO2, NO2,....) & scaling the values 
+
+pollution_numeric <- pollution_Aotizhongxin[, c(6:15, 17)]
+head(pollution_numeric)
+```
+
+```{r}
+### Running the k-means algorithm for pollutant columns - PM10, SO2, NO2, CO, O3 (index 'i' may differ for you guys) - with 4 clusters.
+
+i <- c(1,2,3,4,5,6)
+x <- pollution_numeric[, i]
+cl1 <- kmeans(x, 4, nstart = 100)
+plot(x, col = cl1$cluster, main="k-means Clustering for Aotizhongxin Pollutants")
+```
+
+```{r}
+### Running the k-means algorithm for pollutant columns - TEMP, PRES, DEWP, RAIN, WSPM (index 'i' may differ for you guys) - with 4 clusters.
+
+i <- c(7,8,9,10,11)
+x <- pollution_numeric[, i]
+cl2 <- kmeans(x, 4, nstart = 100)
+plot(x, col = cl2$cluster, main="k-means Clustering for Aotizhongxin Weather Conditions")
+```
+
+###4.3 Asal's EDA
+```{r}
+library("plyr")                                                   # Load plyr package
+library("dplyr")                                                  # Load dplyr package
+library("readr/")                                                  # Load readr package
+library(validate)                                                 # Load validate package
+library(corrplot)
+library(ggplot2)
+library(corrplot)
+library(xlsx)
+```
+
+
+```{r}
+#first of all, the target variable, the variables that are not contributing to pollution and are not numerical should be dropped from the dataset.
+num_pollution_data <- subset(pollution, select =  -c(X, year, month, day, hour, wd, station, PM10))
+
+# perform PCA on the dataset
+pc_pollution <- prcomp(num_pollution_data, center = T, scale = T)
+# inspect the attributes of the PCA object returned by prcomp
+attributes(pc_pollution)
+summary(pc_pollution)
+ 
+print(pc_pollution)
+```   
+
+```{r}
+# plot the variance per PC
+plot(pc_pollution)
+# calculate the proportion of explained variance (PEV) from the std values
+pc_pollution_var <- pc_pollution$sdev^2
+pc_pollution_var
+pc_pollution_PEV <- pc_pollution_var / sum(pc_pollution_var)
+pc_pollution_PEV
+```
+
+```{r}
+# plot the cumulative value of PEV for increasing number of additional PCs
+opar <- par(no.readonly = TRUE)
+plot(
+  cumsum(pc_pollution_PEV),
+  ylim = c(0,1),
+  xlab = 'PC',
+  ylab = 'cumulative PEV',
+  pch = 20,
+  col = 'orange'
+)
+abline(h = 0.75, col = 'red', lty = 'dashed')
+par(opar)
+
+# compute total variance
+variance = pc_pollution_var / sum(pc_pollution_var)
+```
+
+```{r}
+# get and inspect the loadings for each PC
+pc_pollution_loadings <- pc_pollution$rotation
+pc_pollution_loadings
+
+# plot the loadings for the first three PCs as a barplot
+opar <- par(no.readonly = TRUE)
+colvector = c('mistyrose3', 'lightsteelblue3', 'lightyellow', 'olivedrab', 'darkgoldenrod3', 'lightsteelblue1', 'aquamarine4', 'bisque4', 'lightpink3', 'azure4')
+labvector = c('PC1', 'PC2', 'PC3', 'PC4')
+barplot(
+  pc_pollution_loadings[,c(1:4)],
+  beside = T,
+    yaxt = 'n',
+  names.arg = labvector,
+  col = colvector,
+  ylim = c(-1,1),
+  border = 'GRAY',
+  ylab = 'loadings'
+)
+axis(2, seq(-1,1,0.1))
+  legend(
+  'topright',
+  bty = 'n',
+  col = colvector,
+  pch = 15,
+  row.names(pc_pollution_loadings)
+)
+par(opar)
+```
+
+##5. Machine Learning
+```{r}
+#writing to a single csv file for ML+HPCI in Python Dask
+write.csv(pollution, "C:/Users/2130988/Documents/DDA/cleandata/pollution.csv", row.names = FALSE)
+```
